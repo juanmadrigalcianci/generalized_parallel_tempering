@@ -55,13 +55,21 @@ N_temp=len(beta)
 p=2
 x0=np.random.random((p,N_temp))
 sigma_is=np.array([[0.022,0.022],[0.09,0.09],[0.31,0.31],[0.650,0.650]])
+#sigma_is=np.array([[0.07,0.07],[0.1,0.1],[0.15,0.15],[0.3,0.3]])
 
 
 
 mean_r=np.zeros((Nruns,2))
-mean_pf=np.zeros((Nruns,2))
+mean_p=np.zeros((Nruns,2))
 mean_uw=np.zeros((Nruns,2))
-mean_W=np.zeros((Nruns,2))
+mean_w=np.zeros((Nruns,2))
+mean_pf=np.zeros((Nruns,2))
+mean_sd=np.zeros((Nruns,2))
+
+mean_y=np.zeros((Nruns,2))
+mean_yj=np.zeros((Nruns,2))
+
+mean_z=np.zeros((Nruns,2))
 
 
 
@@ -83,63 +91,92 @@ for i in range(Nruns):
 
     print('----------------------------------')
     print('iteration '+str(i))
+    
+    Xsd=base.state_dependent_PT(post,N,beta,sigma_is,x0,Ns=1,Disp=0) #full vanilla, reversible
+
+    
     Xptf=base.full_vanilla(post,N,beta,sigma_is,x0,Ns=1,Disp=0) #full vanilla, reversible
     Xuw=base.unweighted_IS(post,N,beta,sigma_is,x0,1,1,Disp=0) #unweighted Is
-    Xw,W_IS,_=base.weighted_IS(post,N,beta_original,sigma_is,x0,Disp=0) #weighted IS
+    Xw,W_IS,W_IS2=base.weighted_IS(post,N,beta_original,sigma_is,x0,Disp=0) #weighted IS
     Xrwm=base.rwm(post,N*N_temp,sigma_is[0],x0[:,0],Disp=0) #random walk metropolis
     yy,ww=base.weight_samples(Xw,W_IS)
     xx=base.resample_IS(yy,ww,N)
     
     mean_r[i,:]=np.mean(Xrwm[N_temp*Burn_in:],0)
     mean_pf[i,:]=np.mean(Xptf[Burn_in:,:,0],0)
+    mean_sd[i,:]=np.mean(Xsd[Burn_in:,:,0],0)
 
     mean_uw[i,:]=np.mean(Xuw[Burn_in:,:,0],0)
-    mean_W[i,:]=base.mean(Xw[Burn_in:,:,:],W_IS[Burn_in:,:])
+    mean_w[i,:]=np.average(yy[Burn_in*math.factorial(N_temp):,:,0],0,weights=ww[Burn_in*math.factorial(N_temp):])
+
+    mean_y[i,:]=np.mean(xx[Burn_in:,:,0],0)
+    mean_z[i,:]=base.mean(Xw[Burn_in:,:,:],W_IS[Burn_in:,:])
     
     np.save('mean_r_circle_b.npy',mean_r)
-    np.save('mean_p_circle_b.npy',mean_pf)
+    np.save('mean_p_circle_b.npy',mean_p)
     np.save('mean_uw_circle_b.npy',mean_uw)
-    np.save('mean_w_circle_b.npy',mean_W)    
+    np.save('mean_w_circle_b.npy',mean_w)    
+    np.save('mean_sd_circle_b.npy',mean_sd)    
     
     
 print('----------------------------------')
 print('----------------------------------')
 print('means')
+
+
 print(np.mean(mean_r,0))
 print(np.mean(mean_pf,0))
+print(np.mean(mean_sd,0))
+
+
+
 print(' GPT ')
 
 print(np.mean(mean_uw,0))
-print(np.mean(mean_W,0))
+print(np.mean(mean_w,0))
+print(np.mean(mean_y,0))
+print(np.mean(mean_z,0))
 
 
 print('----------------------------------')
 print('variances')
 print(np.var(mean_r,0))
 print(np.var(mean_pf,0))
+print(np.var(mean_sd,0))
+
 print(' GPT ')
 
 print(np.var(mean_uw,0))
-print(np.var(mean_W,0))
+print(np.var(mean_w,0))
+print(np.var(mean_y,0))
+print(np.var(mean_z,0))
 
 
 print('----------------------------------')
 print('bias ^2 ')
 print(np.abs((np.mean(mean_r,0)-true_th))**2.0)
 print(np.abs((np.mean(mean_pf,0)-true_th))**2.0)
+print(np.abs((np.mean(mean_sd,0)-true_th))**2.0)
+
 print(' GPT ')
 
 print(np.abs((np.mean(mean_uw,0)-true_th))**2.0)
-print((np.abs(np.mean(mean_W,0)-true_th))**2.0)
+print((np.abs(np.mean(mean_w,0)-true_th))**2.0)
+print((np.abs(np.mean(mean_y,0)-true_th))**2.0)
+print((np.abs(np.mean(mean_z,0)-true_th))**2.0)
 
 print('----------------------------------')
 print('MSE ')
 print(np.var(mean_r,0)+(np.mean(mean_r,0)-true_th)**2.0)
 print(np.var(mean_pf,0)+(np.mean(mean_pf,0)-true_th)**2.0)
+print(np.var(mean_sd,0)+(np.mean(mean_sd,0)-true_th)**2.0)
+
 print(' GPT ')
 print(np.var(mean_uw,0)+(np.mean(mean_uw,0)-true_th)**2.0)
-print(np.var(mean_W,0)+(np.mean(mean_W,0)-true_th)**2.0)
-
+print(np.var(mean_w,0)+(np.mean(mean_w,0)-true_th)**2.0)
+print(np.var(mean_y,0)+(np.mean(mean_y,0)-true_th)**2.0)
+print(np.var(mean_z,0)+(np.mean(mean_z,0)-true_th)**2.0)
+ #%%
 
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -147,7 +184,7 @@ from scipy.interpolate import interpn
 #from load_emcee import get_samples_emcee
 plt.style.use('ggplot')
 rc('font',**{'family':'serif','serif':['Computer Modern Roman'],
-     'size' : '12'})
+      'size' : '12'})
 rc('text', usetex=True)
 rc('lines', linewidth=2)
 plt.rcParams['axes.facecolor']='w'
@@ -177,32 +214,37 @@ def density_scatter( x , y, ax = None, sort = True, bins = 20, w=None, **kwargs 
 BI=5000
 Max=25000
 
-fig, axes = plt.subplots(nrows = 1, ncols = 5, figsize = (12,4))
-plt.suptitle('Scatterplots')
+fig, axes = plt.subplots(nrows = 2, ncols = 3, figsize = (9,6))
 
-axes[0]=density_scatter( Xrwm[BI:4*Max,0], Xrwm[BI:4*Max,1], ax=axes[0],bins = [100,100], cmap='Spectral')
-axes[0].set_title(r'RWM')
-axes[0].set_xlim(0,1)
-axes[0].set_ylim(0,1)
+axes[0,0]=density_scatter( Xrwm[BI:4*Max,0], Xrwm[BI:4*Max,1], ax=axes[0,0], bins = [100,100], cmap='Spectral')
+axes[0,0].set_title(r'RWM')
+axes[0,0].set_xlim(0,1)
+axes[0,0].set_ylim(0,1)
 
 
-axes[1]=density_scatter( Xptf[BI:Max,0,0], Xptf[BI:Max,1,0], ax=axes[1],bins = [100,100], cmap='Spectral')
-axes[1].set_title(r'PT')
-axes[1].set_xlim(0,1)
-axes[1].set_ylim(0,1)
+axes[0,1]=density_scatter( Xptf[BI:Max,0,0], Xptf[BI:Max,1,0],ax=axes[0,1], bins = [100,100], cmap='Spectral')
+axes[0,1].set_title(r'PT')
+axes[0,1].set_xlim(0,1)
+axes[0,1].set_ylim(0,1)
 
-axes[2]=density_scatter( Xuw[BI:Max,0,0], Xuw[BI:Max,1,0], ax=axes[2],bins = [100,100], cmap='Spectral')
-axes[2].set_title(r'UGPT')
-axes[2].set_xlim(0,1)
-axes[2].set_ylim(0,1)
 
-axes[3]=density_scatter( xx[BI:Max,0,0], xx[BI:Max,1,0] ,ax=axes[3],bins = [100,100], cmap='Spectral')
-axes[3].set_title(r'WGPT')
-axes[3].set_xlim(0,1)
-axes[3].set_ylim(0,1)
+axes[0,2]=density_scatter( Xsd[BI:Max,0,0], Xsd[BI:Max,1,0],ax=axes[0,2], bins = [100,100], cmap='Spectral')
+axes[0,2].set_title(r'PSDPT')
+axes[0,2].set_xlim(0,1)
+axes[0,2].set_ylim(0,1)
 
-axes[4]=density_scatter( Xw[BI:Max,0,0], Xw[BI:Max,1,0],ax=axes[4],bins = [100,100], cmap='Spectral')
-axes[4].set_title(r'WGPT (inv)')
-axes[4].set_xlim(0,1)
-axes[4].set_ylim(0,1)
+axes[1,0]=density_scatter( Xuw[BI:Max,0,0], Xuw[BI:Max,1,0],ax=axes[1,0],bins = [100,100], cmap='Spectral')
+axes[1,0].set_title(r'UGPT')
+axes[1,0].set_xlim(0,1)
+axes[1,0].set_ylim(0,1)
+
+axes[1,1]=density_scatter( xx[BI:Max,0,0], xx[BI:Max,1,0] , ax=axes[1,1],bins = [100,100], cmap='Spectral')
+axes[1,1].set_title(r'WGPT')
+axes[1,1].set_xlim(0,1)
+axes[1,1].set_ylim(0,1)
+
+axes[1,2]=density_scatter( Xw[BI:Max,0,0], Xw[BI:Max,1,0],ax=axes[1,2],bins = [100,100], cmap='Spectral')
+axes[1,2].set_title(r'WGPT (inv)')
+axes[1,2].set_xlim(0,1)
+axes[1,2].set_ylim(0,1)
 fig.tight_layout(rect=[0, 0.03, 1, 0.95])

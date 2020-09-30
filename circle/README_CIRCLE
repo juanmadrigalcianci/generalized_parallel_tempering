@@ -1,0 +1,9 @@
+Here we consider the quarter circle example.
+
+* the main file to obtain the results from the tables and figures is ergodic_est_cirlce_one_run.py.
+* The main file to obtain the scatterplots is ergodic_est_circle_plot.py
+* the file intergral_circle_all.py plots the density plots for the true density of the circle example. 
+* The file true_mean_x_cicle.npy contains the true value of the mean of the x component
+* The file true_mean_y_cicle.npy contains the true value of the mean of the y component
+
+The file base.py contains the RWM,PT,GPT codes. 

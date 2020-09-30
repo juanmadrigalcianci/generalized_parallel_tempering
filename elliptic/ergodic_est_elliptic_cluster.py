@@ -3,6 +3,9 @@
 """
 Created on Fri Aug 23 10:36:37 2019
 
+
+This should be run using mpirun -np PROCS
+otherwise will take forever.
 @author: jmadriga
 """
 
@@ -13,8 +16,18 @@ from scipy.sparse import spdiags
 import time
 from scipy.sparse.linalg import spsolve
 import scipy
+import math
+#------------------------   parallel libraries     -------------------
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+name=MPI.Get_processor_name()
+size=comm.Get_size()
+rank=comm.Get_rank()
+#---------------------------------------------------------------------
+
+
 # Number of runs 
-Nruns=10
+Nruns=100
 
 
 def compute_rmse(x,xt):
@@ -84,7 +97,7 @@ def post(x):
 #
 #---------------------------------------------------------------------
 p=2;#number of parameters
-N=10000#int(10**4); #number of samples
+N=25000#int(10**4); #number of samples
 N_temp=4;#number of temperatures
 Ns=1; #How often do we swap
 X=np.zeros([N,p,N_temp])#prealloactes
@@ -94,21 +107,22 @@ T0=400.0**(1.0/3.0)
 beta = np.array(T0**np.arange(0,N_temp));
 beta_original = np.copy(beta);
 x0=np.random.random((p,N_temp))
-sigma_is=np.array([[0.035,0.035],[0.15,0.15], [0.4,0.4],[0.6,0.6]]);#*linspace(1,100,N_temp);
-
+sigma_is=np.array([[0.03,0.03],[0.1,0.1], [0.4,0.4],[0.6,0.6]]);#*linspace(1,100,N_temp);
+sigma_rwm=0.16
 
 
 
 
 mean_r=np.zeros((Nruns,2))
-mean_pf=np.zeros((Nruns,2))
+mean_p=np.zeros((Nruns,2))
 mean_uw=np.zeros((Nruns,2))
-mean_z=np.zeros((Nruns,2))
+mean_w=np.zeros((Nruns,2))
+mean_pf=np.zeros((Nruns,2))
+mean_sd=np.zeros((Nruns,2))
+mean_y=np.zeros((Nruns,2))
+mean_yj=np.zeros((Nruns,2))
 
 
-
-mx=np.load('true_mean_x_elliptic.npy')
-my=np.load('true_mean_y_elliptic.npy')
 
 true_th=[mx,my]
 #defines burn in
@@ -120,66 +134,97 @@ N=N+Burn_in
 #
 print('started run of ergodic estimator...')
 t0=time.time()
-for i in range(Nruns):
+for i,task in enumerate(range(Nruns)):
+    
+    
+    
+    
+    if i%size!=rank: continue
+    print("Task number %d (%d) being done by processor %d of %d" % (i, task, rank, size))
+
+    np.random.seed(rank) #makes sure to have a different seed each rank 
     x0=np.random.random((p,N_temp))
 
     print('----------------------------------')
     print('iteration '+str(i))
+    
+    Xsd=base.state_dependent_PT(post,N,beta,sigma_is,x0,Ns=1,Disp=0) #full vanilla, reversible
     Xptf=base.full_vanilla(post,N,beta,sigma_is,x0,Ns=1,Disp=0) #full vanilla, reversible
     Xuw=base.unweighted_IS(post,N,beta,sigma_is,x0,1,1,Disp=0) #unweighted Is
-    Xw,W_IS,_=base.weighted_IS(post,N,beta_original,sigma_is,x0,Disp=0) #weighted IS
-    Xrwm=base.rwm(post,N*N_temp,sigma_is[1],x0[:,0],Disp=0) #random walk metropolis
+    Xw,W_IS,W_IS2=base.weighted_IS(post,N,beta_original,sigma_is,x0,Disp=0) #weighted IS
+    Xrwm=base.rwm(post,N*N_temp,sigma_rwm,x0[:,0],Disp=0) #random walk metropolis
     yy,ww=base.weight_samples(Xw,W_IS)
     xx=base.resample_IS(yy,ww,N)
     
     mean_r[i,:]=np.mean(Xrwm[N_temp*Burn_in:],0)
     mean_pf[i,:]=np.mean(Xptf[Burn_in:,:,0],0)
+    mean_sd[i,:]=np.mean(Xsd[Burn_in:,:,0],0)
 
     mean_uw[i,:]=np.mean(Xuw[Burn_in:,:,0],0)
-    mean_z[i,:]=base.mean(Xw,W_IS)
+    mean_w[i,:]=np.average(yy[Burn_in*math.factorial(N_temp):,:,0],0,weights=ww[Burn_in*math.factorial(N_temp):])
+
+    mean_y[i,:]=np.mean(xx[Burn_in:,:,0],0)
     
     np.save('mean_r_elliptic_b.npy',mean_r)
-    np.save('mean_p_elliptic_b.npy',mean_pf)
-    np.save('mean_uw_elliptic_b.npy',mean_uw)  
-    np.save('mean_z_elliptic_b.npy',mean_z)    
+    np.save('mean_p_elliptic_b.npy',mean_p)
+    np.save('mean_uw_elliptic_b.npy',mean_uw)
+    np.save('mean_w_elliptic_b.npy',mean_w)    
+    np.save('mean_sd_elliptic_b.npy',mean_sd)    
+    
     
 print('----------------------------------')
 print('----------------------------------')
 print('means')
+
+
 print(np.mean(mean_r,0))
 print(np.mean(mean_pf,0))
+print(np.mean(mean_sd,0))
+
+
+
 print(' GPT ')
 
 print(np.mean(mean_uw,0))
-print(np.mean(mean_z,0))
+print(np.mean(mean_w,0))
+print(np.mean(mean_y,0))
 
 
 print('----------------------------------')
 print('variances')
 print(np.var(mean_r,0))
 print(np.var(mean_pf,0))
+print(np.var(mean_sd,0))
+
 print(' GPT ')
 
 print(np.var(mean_uw,0))
-print(np.var(mean_z,0))
+print(np.var(mean_w,0))
+print(np.var(mean_y,0))
 
 
 print('----------------------------------')
 print('bias ^2 ')
 print(np.abs((np.mean(mean_r,0)-true_th))**2.0)
 print(np.abs((np.mean(mean_pf,0)-true_th))**2.0)
+print(np.abs((np.mean(mean_sd,0)-true_th))**2.0)
+
 print(' GPT ')
 
 print(np.abs((np.mean(mean_uw,0)-true_th))**2.0)
-print((np.abs(np.mean(mean_z,0)-true_th))**2.0)
+print((np.abs(np.mean(mean_w,0)-true_th))**2.0)
+print((np.abs(np.mean(mean_y,0)-true_th))**2.0)
 
 print('----------------------------------')
 print('MSE ')
 print(np.var(mean_r,0)+(np.mean(mean_r,0)-true_th)**2.0)
 print(np.var(mean_pf,0)+(np.mean(mean_pf,0)-true_th)**2.0)
+print(np.var(mean_sd,0)+(np.mean(mean_sd,0)-true_th)**2.0)
+
 print(' GPT ')
 print(np.var(mean_uw,0)+(np.mean(mean_uw,0)-true_th)**2.0)
-print(np.var(mean_z,0)+(np.mean(mean_z,0)-true_th)**2.0)
+print(np.var(mean_w,0)+(np.mean(mean_w,0)-true_th)**2.0)
+print(np.var(mean_y,0)+(np.mean(mean_y,0)-true_th)**2.0)
 
 
 

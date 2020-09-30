@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Computes the true value of the parameters for the circle
+Created on Tue Oct  1 10:07:56 2019
+
+@author: jmadriga
 """
 import numpy as np
 import matplotlib.pyplot as plt

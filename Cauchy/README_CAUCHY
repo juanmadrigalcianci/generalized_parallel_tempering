@@ -1,0 +1,9 @@
+Here we consider the Cauchy  example.
+* The file data_cauchy.npy and sig_cauchy.npy contains the data for the Cauchy
+* the main file to obtain the results from the tables is ergodic_est_cauchy.py. 
+
+* the file cauchy_plot_log_post.py plots the log-density.
+* The file cauchy_integrate.py computes the true mean.
+
+
+The file base.py contains the RWM,PT,GPT codes.

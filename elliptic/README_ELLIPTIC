@@ -1,0 +1,9 @@
+Here we consider the quarter elliptic pde example.
+* The file data_elliptic.npy , noise_elliptic.npy, and utrue_elliptic.npy contain the data for the elliptic pde
+* the main file to obtain the results from the tables is ergodic_est_elliptic.py. Takes a while and I reccoment to run embarassingly parallel.
+* The main file to obtain the scatterplots is ergodic_est_elliptic_scatter.py
+* the file intergral_elliptic_all.py plots the density plots for the true density of the circle example.
+* The file true_mean_x_elliptic.npy contains the true value of the mean of the x component
+* The file true_mean_y_elliptic.npy contains the true value of the mean of the y component
+
+The file base.py contains the RWM,PT,GPT codes.
