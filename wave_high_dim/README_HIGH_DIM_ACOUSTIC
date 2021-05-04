@@ -1,0 +1,15 @@
+ FEnICS needs to be isntalled to run this code.
+
+ 1) Download anaconda
+ 2) from the terminal, type `$: conda create --name GPT`
+ 3) activate the environment: `$: conda activate GPT'
+ 4) Install FEniCS: `$conda install -c conda-forge fenics`
+
+This is an intense problem and I highly recommend you run in a cluster if you want to repoduce the results from the paper.
+
+Here we consider the high-dimensional acoustic example.
+* The files true_field.npy, wave.npy, noise_wave.npy are the data for the PDE.
+* the main files to obtain the results from the tables are ergodic_est_wave_XXX.py.
+ Takes a while and I reccomend to run multiple times in embarrassingly parallel. Here, XXX is full_pt,pcn,sd,uw,w.
+* The file forward_wave.py contains the FEniCS code to run the AWE.
+* The file plot_field.py plots the true field that generated the data. The file base.py contains the pCN,PT,GPT codes.

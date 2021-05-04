@@ -1,0 +1,14 @@
+ FEnICS needs to be isntalled to run this code. 
+ 
+ 1) Download anaconda
+ 2) from the terminal, type `$: conda create --name GPT`
+ 3) activate the environment: `$: conda activate GPT'
+ 4) Install FEniCS: `$conda install -c conda-forge fenics`
+
+
+Here we consider the quarter elliptic pde example.
+* The files y_trueac.npy, y_true_data.ac.npy, sigma_ac.npy tt.npy are the data for the PDE.
+* the main file to obtain the results from the tables is acoustic_XXX_test_parallel.py. Takes a while and I reccoment to run multiple times in embarassingly parallel. Here, XXX is pt,rwm,sd,ugpt,wgpt.
+* The file acoustic_driver_two_source.py contains the FEniCS code to run the AWE.
+* The file plt_log_likelihood_ac.py plots the log_likelihood as a fucntion of source location, for fixed material properties.
+The file base.py contains the RWM,PT,GPT codes.
